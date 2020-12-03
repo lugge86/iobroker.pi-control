@@ -1,0 +1,118 @@
+{
+    "common": {
+        "name": "pi-control",
+        "version": "0.0.1",
+        "news": {
+            "0.0.1": {
+                "en": "initial release",
+                "de": "Erstveröffentlichung",
+                "ru": "Начальная версия",
+                "pt": "lançamento inicial",
+                "nl": "Eerste uitgave",
+                "fr": "Première version",
+                "it": "Versione iniziale",
+                "es": "Versión inicial",
+                "pl": "Pierwsze wydanie",
+                "zh-cn": "首次出版"
+            }
+        },
+        "title": "PiControl",
+        "titleLang": {
+            "en": "PiControl",
+            "de": "PiControl",
+            "ru": "PiControl",
+            "pt": "PiControl",
+            "nl": "PiControl",
+            "fr": "PiControl",
+            "it": "PiControl",
+            "es": "PiControl",
+            "pl": "PiControl",
+            "zh-cn": "PiControl"
+        },
+        "desc": {
+            "en": "Controlling remote Raspberry Pi with ioBroker",
+            "de": "Fernsteuerung von Raspberry Pi mit ioBroker",
+            "ru": "Управление удаленным Raspberry Pi с помощью ioBroker",
+            "pt": "Controle remoto do Raspberry Pi com ioBroker",
+            "nl": "Raspberry Pi op afstand bedienen met ioBroker",
+            "fr": "Contrôle du Raspberry Pi à distance avec ioBroker",
+            "it": "Controllo remoto di Raspberry Pi con ioBroker",
+            "es": "Controlar la Raspberry Pi remota con ioBroker",
+            "pl": "Sterowanie zdalne Raspberry Pi za pomocą ioBroker",
+            "zh-cn": "使用ioBroker控制远程Raspberry Pi"
+        },
+        "authors": [
+            "lugge86 <lugge86@mailbox.org>"
+        ],
+        "keywords": [
+            "iobroker",
+            "raspberry",
+            "pi",
+            "remote",
+            "network"
+        ],
+        "license": "MIT",
+        "platform": "Javascript/Node.js",
+        "main": "main.js",
+        "icon": "pi-control.png",
+        "enabled": true,
+        "extIcon": "https://raw.githubusercontent.com/lugge86/ioBroker.pi-control/master/admin/pi-control.png",
+        "readme": "https://github.com/lugge86/ioBroker.pi-control/blob/master/README.md",
+        "loglevel": "info",
+        "mode": "daemon",
+        "type": "infrastructure",
+        "compact": true,
+        "materialize": true,
+        "materializeTab": true,
+        "adminTab": {
+            "singleton": true,
+            "name": {
+                "en": "PiControl",
+                "de": "PiControl",
+                "ru": "PiControl",
+                "pt": "PiControl",
+                "nl": "PiControl",
+                "fr": "PiControl",
+                "it": "PiControl",
+                "es": "PiControl",
+                "pl": "PiControl",
+                "zh-cn": "PiControl"
+            },
+            "link": "",
+            "fa-icon": "info"
+        },
+        "dependencies": [
+            {
+                "js-controller": ">=1.4.2"
+            }
+        ]
+    },
+    "native": {
+        "option1": true,
+        "option2": "42"
+    },
+    "objects": [],
+    "instanceObjects": [
+        {
+            "_id": "info",
+            "type": "channel",
+            "common": {
+                "name": "Information"
+            },
+            "native": {}
+        },
+        {
+            "_id": "info.connection",
+            "type": "state",
+            "common": {
+                "role": "indicator.connected",
+                "name": "Device or service connected",
+                "type": "boolean",
+                "read": true,
+                "write": false,
+                "def": false
+            },
+            "native": {}
+        }
+    ]
+}
