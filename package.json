@@ -20,7 +20,8 @@
     "url": "https://github.com/lugge86/ioBroker.pi-control"
   },
   "dependencies": {
-    "@iobroker/adapter-core": "^2.4.0"
+    "@iobroker/adapter-core": "^2.4.0",
+    "ping": "^0.3.0"
   },
   "devDependencies": {
     "@iobroker/testing": "^2.3.0",
