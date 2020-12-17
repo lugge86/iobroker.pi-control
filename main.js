@@ -24,6 +24,7 @@ class PiControl extends utils.Adapter {
     };
     
     piPlugId = "linkeddevices.0.Plug.Ambilight";
+    delayStartup = (60000 * 2);
     delayRecovery = (150000);
     delayOff = 8000;
     delayDecharge = 5000;
@@ -45,18 +46,17 @@ class PiControl extends utils.Adapter {
         this.piAliveOld = false;
         
         this.mainTimer = null;
-        this.recoveryTimer = null;
-        this.offTimer = null;
-        this.dechargeTimer = null;        
-        this.recoveryTimerFinished = false;
-        this.offTimerFinished = false;
-        this.dechargeTimerFinished = false;
     }
 
     
     async AdapterInit() {
         
         this.CreateStates();
+        
+        this.startupTimer = new Timer(this.delayStartup, this.MainFunction.bind(this) );
+        this.recoveryTimer = new Timer(this.delayRecovery, this.MainFunction.bind(this) );
+        this.offTimer = new Timer(this.delayOff, this.MainFunction.bind(this) );
+        this.dechargeTimer = new Timer(this.delayDecharge, this.MainFunction.bind(this) );
         
         if (this.ConfigSanityCheck(this.config) == true) {
             /* all further work is handled by or main function, which needs to be called cyclically */
@@ -92,6 +92,8 @@ class PiControl extends utils.Adapter {
                     /* user wants to switch on the pi, thus, switch on relay */
                     this.setForeignState(this.piPlugId, true);
                     this.piSwitched = false;
+                    this.startupTimer.Start();
+                    
                     this.log.info("state change: off => waitingForOn");
                     this.piState = this.piStates.waitingForOn;
                     
@@ -109,10 +111,17 @@ class PiControl extends utils.Adapter {
                 /* in this state, we wait till the pi has booted */
                 if (this.piAlive == true) {
                     /* seems that the pi has finished booting */
+                    this.startupTimer.Stop();
+                    
                     this.log.info("state change: waitingForOn => on");
                     this.piState = this.piStates.on;
+                    
+                } else if ( this.startupTimer.IsFinished() == true) {
+                    this.log.error("seems the pi won't start up...");
+                    
+                    this.log.info("state change: waitingForOn => recovery");
+                    this.piState = this.piStates.recovery;                
                 }
-                //todo: timeout
                 break;
             }
 
@@ -126,20 +135,18 @@ class PiControl extends utils.Adapter {
                     
                     this.log.info("state change: on => waitingForShutdown");
                     this.piState = this.piStates.waitingForShutdown;
-                } else if ( (this.piAlive == false) && (this.recoveryTimerFinished == true) ) {
-                    this.recoveryTimerFinished = false;
+                    
+                } else if ( (this.piAlive == false) && ( this.recoveryTimer.IsRunning() == false ) ) {
+                    this.log.info("pi seems no longer reachable, starting recovery timer before taking actions");
+                    this.recoveryTimer.Start();
+                    
+                } else if ( (this.piAlive == false) && (this.recoveryTimer.IsFinished() == true) ) {
                     this.log.info("state change: on => recovery");
                     this.piState = this.piStates.recovery;
                     
-                } else if ( (this.piAlive == false) && !(this.recoveryTimer) ){
-                    this.log.info("pi seems no longer reachable, starting recovery timer before taking actions");
-                    this.recoveryTimerFinished = false;
-                    this.recoveryTimer = setTimeout(this.RecoveryTimerClbk.bind(this), this.delayRecovery);
-                    
-                } else if ( (this.piAlive == true) && (this.recoveryTimer) ){
+                } else if ( (this.piAlive == true) && ( this.recoveryTimer.IsRunning() ) ){
                     this.log.info("pi is reachable again, aborting recovery timer");
-                    clearTimeout(this.recoveryTimer);
-                    this.recoveryTimer = null;
+                    this.recoveryTimer.Stop();
                 }
 
                 break;
@@ -149,8 +156,7 @@ class PiControl extends utils.Adapter {
             case this.piStates.waitingForShutdown: {                
                 
                 if (this.piAlive == false) {
-                    this.offTimerFinished = false;
-                    this.offTimer = setTimeout(this.OffTimerClbk.bind(this), this.delayOff);
+                    this.offTimer.Start();
                     
                     this.log.info("state change: waitingForShutdown => waitingDelayOff");
                     this.piState = this.piStates.waitingDelayOff;
@@ -160,12 +166,10 @@ class PiControl extends utils.Adapter {
             }
 
             /* here we wait another short delay to make sure the pi is really shut down */
-            case this.piStates.waitingDelayOff: {            
-                if (this.offTimerFinished == true) {
-                    this.offTimerFinished = false;
-                    this.setForeignState(this.piPlugId, false);                    
-                    this.dechargeTimerFinished = false;
-                    this.dechargeTimer = setTimeout(this.DechargeTimerClbk.bind(this), this.delayDecharge);
+            case this.piStates.waitingDelayOff: {
+                if (this.offTimer.IsFinished() == true) {
+                    this.setForeignState(this.piPlugId, false);
+                    this.dechargeTimer.Start();
 
                     this.log.info("state change: waitingDelayOff => waitingDelayDecharge");
                     this.piState = this.piStates.waitingDelayDecharge;
@@ -174,8 +178,7 @@ class PiControl extends utils.Adapter {
             }
             
             case this.piStates.waitingDelayDecharge: {
-                if (this.dechargeTimerFinished == true) {
-                    this.dechargeTimerFinished = false;
+                if (this.dechargeTimer.IsFinished() == true) {
                     
                     this.log.info("state change: waitingDelayDecharge => off");
                     this.piState = this.piStates.off;                
@@ -186,9 +189,8 @@ class PiControl extends utils.Adapter {
             case this.piStates.recovery: {
                 if (this.autoRecovery == true) {
                     
-                    this.setForeignState(this.piPlugId, false);                    
-                    this.dechargeTimerFinished = false;
-                    this.dechargeTimer = setTimeout(this.DechargeTimerClbk.bind(this), this.delayDecharge);
+                    this.setForeignState(this.piPlugId, false);
+                    this.dechargeTimer.Start();
                     
                     this.log.info("state change: recovery => waitingDelayDecharge");
                     this.piState = this.piStates.waitingDelayDecharge;
@@ -255,26 +257,7 @@ class PiControl extends utils.Adapter {
         if ( (state.val == true) && (state.old_val == false) ) {                        
         }
     }
-    
-    
-    RecoveryTimerClbk() {
-        this.recoveryTimer = null;
-        this.recoveryTimerFinished = true;
-        this.ProcessStateMachine();
-    }
-    
-    OffTimerClbk() {
-        this.offTimer = null;
-        this.offTimerFinished = true;
-        this.ProcessStateMachine();
-    }
-    
-    DechargeTimerClbk() {
-        this.dechargeTimer = null;
-        this.dechargeTimerFinished = true;
-        this.ProcessStateMachine();
-    }
-    
+
     
     async CreateStates() {
         /* create states... */
@@ -323,6 +306,47 @@ class PiControl extends utils.Adapter {
         return id.split(".").pop();
     }
 }
+
+
+
+class Timer {
+    
+    constructor(timeout, callback) {
+        this.timeout = timeout;
+        this.callback = callback;
+        this.timer = null;
+        this.finished = false;
+    }
+    
+    Start() {
+        this.timer = setTimeout( () => {
+            this.finished = true;
+            if (this.callback) {
+                this.callback()
+            }
+        }, this.timeout);
+    }
+    
+    Stop() {
+        clearTimeout(this.timer);
+        this.timer = null;
+    }
+    
+    IsFinished() {
+        var ret = this.finished;
+        this.finished = false;
+        return ret;
+    }
+    
+    IsRunning() {
+        var ret = false;
+        if (this.timer) {
+            ret = true;
+        }
+        return ret;
+    }
+}
+
 
 
 
