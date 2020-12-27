@@ -27,10 +27,10 @@ def main():
             if not data:
                 break
 
-            if data == "shutdown\n":
+            if data == "shutdown":
                 print("shutting down...")
-                os.system('sudo shutdown now')
-            elif data == "test\n":
+                #os.system('sudo shutdown now')
+            elif data == "test":
                 print("received test")
                 True
             elif data == "video1\n":
@@ -54,6 +54,7 @@ def main():
                 print("2: ", p.stdout.read() )
             else:
                 print("unknown command")
+                print(data)
         #print("connection closed by peer...")
 
     conn.close()
