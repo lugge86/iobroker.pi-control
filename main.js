@@ -131,7 +131,7 @@ class PiControl extends utils.Adapter {
                 if (this.piSwitched == true) {
                     /* shutdown triggered by user */
                     this.piSwitched = false;
-                    exec('echo "shutdown" | nc 192.168.0.83  8080 -q 1');
+                    exec('echo "shutdown" | nc 192.168.0.108  2222 -u -q 1');
                     
                     this.log.info("state change: on => waitingForShutdown");
                     this.piState = this.piStates.waitingForShutdown;
@@ -280,7 +280,7 @@ class PiControl extends utils.Adapter {
     
     CheckPiAlive() {
         /* we ping the pi to get the alive status */
-        ping.sys.probe("192.168.0.83", (isAlive) => {
+        ping.sys.probe("192.168.0.108", (isAlive) => {
             if (isAlive) {
                 this.piAlive = true;
             } else {
