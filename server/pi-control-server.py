@@ -7,9 +7,10 @@ import subprocess
 import signal
 import sys
 
+UDP_PORT_NO = 2222
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind(('', 8080))
+serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+serverSocket.bind(('', UDP_PORT_NO))
 
 
     
@@ -21,13 +22,8 @@ s.bind(('', 8080))
 
 def main():
     while 1:
-        s.listen(1)
-        #print("started listeing...")
-        conn, addr = s.accept()
-        #print("connected...")
-
         while 1:
-            data = conn.recv(20)
+            data = serverSocket.recv(100)
             if not data:
                 break
 
@@ -35,7 +31,7 @@ def main():
                 print("shutting down...")
                 os.system('sudo shutdown now')
             elif data == "test\n":
-                #print("received test")
+                print("received test")
                 True
             elif data == "video1\n":
                 PlayVideo("https://www.youtube.com/watch?v=hlWiI4xVXKY")
