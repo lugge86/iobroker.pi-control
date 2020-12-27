@@ -5,9 +5,11 @@
  */
 
 const utils = require("@iobroker/adapter-core");
-const exec = require('child_process').exec;
+//const exec = require('child_process').exec;
 const schedule = require('node-schedule');
 const ping = require('ping');
+const udp = require('dgram');
+const buffer = require('buffer');
 
 
 class PiControl extends utils.Adapter {
@@ -29,6 +31,8 @@ class PiControl extends utils.Adapter {
     delayOff = 8000;
     delayDecharge = 5000;
     autoRecovery = true;
+    
+    piServer = udp.createSocket('udp4');
 
     
     constructor(options) {
@@ -46,6 +50,13 @@ class PiControl extends utils.Adapter {
         this.piAliveOld = false;
         
         this.mainTimer = null;
+        
+        
+        this.piServer.on('message', function(msg,info){
+            this.log.debug('Msg received: ' + msg.toString() + " " + msg.length + " " + info.address + " " + info.port);
+            console.log('Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
+        });
+        
     }
 
     
@@ -131,7 +142,7 @@ class PiControl extends utils.Adapter {
                 if (this.piSwitched == true) {
                     /* shutdown triggered by user */
                     this.piSwitched = false;
-                    exec('echo "shutdown" | nc 192.168.0.108  2222 -u -q 1');
+                    this.CommandShutdown();
                     
                     this.log.info("state change: on => waitingForShutdown");
                     this.piState = this.piStates.waitingForShutdown;
@@ -250,6 +261,26 @@ class PiControl extends utils.Adapter {
             this.setState("Switch", false);    
         }
     }
+    
+    
+    CommandShutdown() {
+        this.SendToServer("shutdown");
+    }
+    
+    
+    SendToServer(data) {
+        
+        var mybuf = Buffer.from(data);
+        
+        this.piServer.send( mybuf, 2222,'192.168.0.108', (error) => {
+            if (error) {
+                this.piServer.close();
+            } else {
+                this.log.info('Data sent !!!');
+            }
+        });
+    }
+    
     
     
     ProcessTriggerEmergencyShutdown(state) {
