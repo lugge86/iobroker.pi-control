@@ -31,6 +31,9 @@ class PiControl extends utils.Adapter {
     delayOff = 8000;
     delayDecharge = 5000;
     autoRecovery = true;
+    requestId = 0;
+    
+    counter = 0;
     
     piServer = udp.createSocket('udp4');
 
@@ -50,13 +53,8 @@ class PiControl extends utils.Adapter {
         this.piAliveOld = false;
         
         this.mainTimer = null;
-        
-        
-        this.piServer.on('message', function(msg,info){
-            this.log.debug('Msg received: ' + msg.toString() + " " + msg.length + " " + info.address + " " + info.port);
-            console.log('Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
-        });
-        
+                
+        this.piServer.on('message', this.ReceiveClbk.bind(this) );        
     }
 
     
@@ -92,12 +90,14 @@ class PiControl extends utils.Adapter {
         /* do all our cyclic stuff here */
         this.ProcessStateMachine();
         this.CheckPiAlive();
+        this.ProcessMeasurements();
     }
     
    
     ProcessStateMachine() {
         /* actions depend on current state */
         switch(this.piState) {
+            
             case this.piStates.off: {
                 if (this.piSwitched == true) {
                     /* user wants to switch on the pi, thus, switch on relay */
@@ -144,8 +144,8 @@ class PiControl extends utils.Adapter {
                     this.piSwitched = false;
                     this.CommandShutdown();
                     
-                    this.log.info("state change: on => waitingForShutdown");
-                    this.piState = this.piStates.waitingForShutdown;
+                    //this.log.info("state change: on => waitingForShutdown");
+                    //this.piState = this.piStates.waitingForShutdown;
                     
                 } else if ( (this.piAlive == false) && ( this.recoveryTimer.IsRunning() == false ) ) {
                     this.log.info("pi seems no longer reachable, starting recovery timer before taking actions");
@@ -263,14 +263,49 @@ class PiControl extends utils.Adapter {
     }
     
     
-    CommandShutdown() {
-        this.SendToServer("shutdown");
+    CommandShutdown() {        
+        var requestId = this.requestId;
+        this.requestId++;
+        
+        var request = {
+            cmd: "shutdown",
+            id: this.requestId
+        }
+        
+        this.SendToServer(request);
+    }
+    
+    CommandGet() {
+        var requestId = this.requestId;
+        this.requestId++;
+        
+        var request = {
+            cmd: "monitor",
+            id: this.requestId,
+            
+            param: {
+                components: {
+                    cpu: true,
+                    memory: true,
+                    network: true,
+                    raspberry: true,
+                    sdcard: true,
+                    swap: true,
+                    temperature: true,
+                    uptime: true,
+                    wlan: false                
+                }
+            }
+        }
+        
+        this.SendToServer(request);
     }
     
     
-    SendToServer(data) {
+    SendToServer(request) {
         
-        var mybuf = Buffer.from(data);
+        var requestString = (JSON.stringify(request) + "\n");                
+        var mybuf = Buffer.from(requestString);
         
         this.piServer.send( mybuf, 2222,'192.168.0.108', (error) => {
             if (error) {
@@ -281,6 +316,54 @@ class PiControl extends utils.Adapter {
         });
     }
     
+    
+    ReceiveClbk(msg, info) {
+        //this.log.debug('Msg received: ' + msg.toString() + " " + msg.length + " " + info.address + " " + info.port);
+        //this.log.info('Received %d bytes from %s:%d\n',msg.length, info.address, info.port);
+        
+        var response = JSON.parse(msg);
+        
+        switch (response.cmd) {
+            case "shutdown": {
+                break;
+            }
+            
+            case "monitor": {
+                if (response.success == true) {
+                    this.UpdateDatapointsMonitor(response.data);
+                }                
+                break;
+            }
+            
+            default: {
+                break;
+            }            
+        }
+        
+        
+        if (response.success != true) {
+            this.log.info("Cmd " + response.cmd + " could not be executed!");
+        }
+        
+        
+    }
+    
+    UpdateDatapointsMonitor(data) {
+        
+        for (var component of data) {            
+            
+            for (var command of component.data) {
+                var path = "monitor." + component.name + "." + command.name;
+                this.log.info( path)
+            }
+        }
+            
+            
+        
+        
+        
+        //await this.setObjectNotExistsAsync("trigger",       {type: "state", common: {name: "select active priority", type: "number", role: "state", read: true, write: true } });
+    }
     
     
     ProcessTriggerEmergencyShutdown(state) {
@@ -329,6 +412,18 @@ class PiControl extends utils.Adapter {
             }
             this.piAliveOld = this.piAlive;
         } );
+    }
+    
+    
+    ProcessMeasurements() {
+        
+        if (this.piState == this.piStates.on) {        
+            this.counter += 5;
+            if (this.counter >= 15) {
+                this.counter = 0;                
+                this.CommandGet();
+            }
+        }
     }
     
     
