@@ -171,7 +171,7 @@ def main():
 
             if request["cmd"] == "shutdown":
                 print("shutting down...")
-                #os.system('sudo shutdown now')
+                os.system('sudo shutdown now')
                 
             elif request["cmd"] == "test":
                 print("received test")

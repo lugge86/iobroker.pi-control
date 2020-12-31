@@ -231,7 +231,7 @@ class PiControl extends utils.Adapter {
                     
                     case "Switch": {
                         this.piSwitch = state.val;
-                        ProcessStateMachine();
+                        this.ProcessStateMachine();
                         break;
                     }
                     
@@ -338,24 +338,13 @@ class PiControl extends utils.Adapter {
             
             for (var command of component.data) {
                 var path = "monitor." + component.name + "." + command.name;
-                this.log.info( path)
+                //this.log.info( path)
             }
         }
-            
-            
-        
-        
         
         //await this.setObjectNotExistsAsync("trigger",       {type: "state", common: {name: "select active priority", type: "number", role: "state", read: true, write: true } });
     }
     
-    
-    ProcessTriggerEmergencyShutdown(state) {
-        /* Todo: EmergencyShutdown is not supported at the moment */
-        if ( (state.val == true) && (state.old_val == false) ) {                        
-        }
-    }
-
     
     async CreateStates() {
         /* create states... */
@@ -468,7 +457,7 @@ class Timer {
 // @ts-ignore parent is a valid property on module
 if (module.parent) {
     // Export the constructor in compact mode
-//     /**
+     /**
      * @param {Partial<utils.AdapterOptions>} [options={}]
      */
     module.exports = (options) => new PiControl(options);

@@ -51,6 +51,7 @@ function save(callback) {
         }
     });
         
+    callback(adapterConfig);
     
     /* before storing the config object via the callback, ask adapter backend if the config is valid */    
 //     sendTo(adapter + "." + instance, 'ConfigSanityCheck', adapterConfig, isSane => {
