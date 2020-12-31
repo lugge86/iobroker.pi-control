@@ -144,8 +144,8 @@ class PiControl extends utils.Adapter {
                     /* shutdown triggered by user */
                     this.CommandShutdown();
                     
-                    //this.log.info("state change: on => waitingForShutdown");
-                    //this.piState = this.piStates.waitingForShutdown;
+                    this.log.info("state change: on => waitingForShutdown");
+                    this.piState = this.piStates.waitingForShutdown;
                     
                 } else if ( (this.piAlive == false) && ( this.recoveryTimer.IsRunning() == false ) ) {
                     this.log.info("pi seems no longer reachable, starting recovery timer before taking actions");
