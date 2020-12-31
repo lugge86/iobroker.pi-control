@@ -178,6 +178,7 @@ def main():
                 
             elif request["cmd"] == "serverInfo":
                 sendResponse = True
+                response["data"] = {}
                 response["data"]["version"] = "0.0.1"
                 response["success"] = True
                 
