@@ -25,7 +25,6 @@ class PiControl extends utils.Adapter {
         recovery: 7
     };
     
-    piPlugId = "linkeddevices.0.Plug.Ambilight";
     delayStartup = (60000 * 2);
     delayRecovery = (150000);
     delayOff = 8000;
@@ -101,7 +100,7 @@ class PiControl extends utils.Adapter {
             case this.piStates.off: {
                 if (this.piSwitch == true) {
                     /* user wants to switch on the pi, thus, switch on relay */
-                    this.setForeignState(this.piPlugId, true);
+                    this.setForeignState(this.config.plugId, true);
                     this.piSwitch = false;
                     this.startupTimer.Start();
                     
@@ -111,6 +110,7 @@ class PiControl extends utils.Adapter {
                 } else if (this.piAlive == true) {
                     /* seems that someone switched on the pi directly */
                     this.setState("Switch", true);
+                    this.CommandServerInfo();
                     
                     this.log.info("state change: off => on");
                     this.piState = this.piStates.on;
@@ -123,6 +123,7 @@ class PiControl extends utils.Adapter {
                 if (this.piAlive == true) {
                     /* seems that the pi has finished booting */
                     this.startupTimer.Stop();
+                    this.CommandServerInfo();
                     
                     this.log.info("state change: waitingForOn => on");
                     this.piState = this.piStates.on;
@@ -180,7 +181,7 @@ class PiControl extends utils.Adapter {
             /* here we wait another short delay to make sure the pi is really shut down */
             case this.piStates.waitingDelayOff: {
                 if (this.offTimer.IsFinished() == true) {
-                    this.setForeignState(this.piPlugId, false);
+                    this.setForeignState(this.config.plugId, false);
                     this.dechargeTimer.Start();
 
                     this.log.info("state change: waitingDelayOff => waitingDelayDecharge");
@@ -201,7 +202,7 @@ class PiControl extends utils.Adapter {
             case this.piStates.recovery: {
                 
                 if (this.autoRecovery == true) {                    
-                    this.setForeignState(this.piPlugId, false);
+                    this.setForeignState(this.config.plugId, false);
                     this.dechargeTimer.Start();
                     
                     this.log.info("state change: recovery => waitingDelayDecharge");
@@ -259,7 +260,19 @@ class PiControl extends utils.Adapter {
         this.SendToServer(request);
     }
     
-    CommandGet() {
+    CommandServerInfo() {        
+        var requestId = this.requestId;
+        this.requestId++;
+        
+        var request = {
+            cmd: "serverInfo",
+            id: this.requestId
+        }
+        
+        this.SendToServer(request);
+    }
+    
+    CommandMonitor() {
         var requestId = this.requestId;
         this.requestId++;
         
@@ -294,8 +307,6 @@ class PiControl extends utils.Adapter {
         this.piServer.send( mybuf, this.config.serverPort, this.config.serverIp, (error) => {
             if (error) {
                 this.piServer.close();
-            } else {
-                this.log.info('Data sent !!!');
             }
         });
     }
@@ -315,6 +326,13 @@ class PiControl extends utils.Adapter {
             case "monitor": {
                 if (response.success == true) {
                     this.UpdateDatapointsMonitor(response.data);
+                }                
+                break;
+            }
+            
+            case "serverInfo": {
+                if (response.success == true) {
+                    this.log.info("ServerVersion: " + response.data.version);
                 }                
                 break;
             }
@@ -366,6 +384,10 @@ class PiControl extends utils.Adapter {
             return false;
         }
         
+        if (config.plugId == "") {
+            return false;
+        }
+        
         return configSane;
     }
     
@@ -399,7 +421,7 @@ class PiControl extends utils.Adapter {
             this.counter += 5;
             if (this.counter >= 15) {
                 this.counter = 0;                
-                this.CommandGet();
+                this.CommandMonitor();
             }
         }
     }

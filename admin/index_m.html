@@ -59,8 +59,8 @@
 
         <!-- tab-main, tab for basic adapter settings -->
         <div id="tab-main" class="col s12 page">
-            <div class="row">
             
+            <div class="row">            
                 <div class="col s6 input-field">
                     <input type="text" class="cfgval-simple" id="serverIp" />
                     <label for="serverIp" class="translate">Server IP</label>
@@ -70,8 +70,22 @@
                     <input type="text" class="cfgval-simple" id="serverPort" />
                     <label for="serverPort" class="translate">Port</label>
                 </div>
-
             </div>
+           
+            <div class="row">
+                <div class="input-field col s6 m6 l6">
+                    <input type="text" class="cfgval-simple" id="plugId" />
+                    <label for="plugId" class="translate">Plug used for powering the Pi</label>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="input-field col s6 m6 l6">
+                    <input type="checkbox" class="cfgval-simple" id="simpleMode" />
+                    <label class="translate" for="simpleMode">simple mode</label>
+                </div>
+            </div>
+            
         </div>
     </div>
 </div>
