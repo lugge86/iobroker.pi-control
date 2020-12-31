@@ -101,7 +101,6 @@ class PiControl extends utils.Adapter {
                 if (this.piSwitch == true) {
                     /* user wants to switch on the pi, thus, switch on relay */
                     this.setForeignState(this.config.plugId, true);
-                    this.piSwitch = false;
                     this.startupTimer.Start();
                     
                     this.log.info("state change: off => waitingForOn");
