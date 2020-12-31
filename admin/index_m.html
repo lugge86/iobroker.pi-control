@@ -1,69 +1,52 @@
 <html>
-
 <head>
 
-    <!-- Load ioBroker scripts and styles-->
-    <link rel="stylesheet" type="text/css" href="../../css/adapter.css" />
-    <link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css">
+<!-- Load ioBroker scripts and styles-->
+<link rel="stylesheet" type="text/css" href="../../css/adapter.css"/>
+<link rel="stylesheet" type="text/css" href="../../lib/css/materialize.css">
+<link type="text/css" rel="stylesheet" href="../../lib/css/themes/jquery-ui/default/jquery-ui.min.css">
+<link type="text/css" rel="stylesheet" href="../../lib/css/fancytree/ui.fancytree.min.css"/>
+<link rel="stylesheet" type="text/css" href="../../lib/css/iob/selectID.css"/>
 
-    <script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
-    <script type="text/javascript" src="../../socket.io/socket.io.js"></script>
+<script type="text/javascript" src="../../lib/js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" src="../../lib/js/jquery-ui-1.10.3.full.min.js"></script>
+<script type="text/javascript" src="../../lib/js/jquery.fancytree-all.min.js"></script>
+<script type="text/javascript" src="../../socket.io/socket.io.js"></script>
 
-    <script type="text/javascript" src="../../js/translate.js"></script>
-    <script type="text/javascript" src="../../lib/js/materialize.js"></script>
-    <script type="text/javascript" src="../../js/adapter-settings.js"></script>
+<script type="text/javascript" src="../../js/translate.js"></script>
+<script type="text/javascript" src="../../lib/js/selectID.js"></script>
+<script type="text/javascript" src="../../lib/js/materialize.js"></script>
+<script type="text/javascript" src="../../js/adapter-settings.js"></script>
 
-    <!-- Load our own files -->
-    <link rel="stylesheet" type="text/css" href="style.css" />
-    <script type="text/javascript" src="words.js"></script>
+<!-- Load our own files -->
+<link rel="stylesheet" type="text/css" href="style.css" />
+<script type="text/javascript" src="words.js"></script>
 
-    
-    <script type="text/javascript">
-        // This will be called by the admin adapter when the settings page loads
-        function load(settings, onChange) {
-            // example: select elements with id=key and class=value and insert value
-            if (!settings) return;
-            $(".cfgval-simple").each(function () {
-                var $key = $(this);
-                var id = $key.attr('id');
-                if ($key.attr('type') === 'checkbox') {
-                    // do not call onChange direct, because onChange could expect some arguments
-                    $key.prop('checked', settings[id])
-                        .on('change', () => onChange())
-                        ;
-                } else {
-                    // do not call onChange direct, because onChange could expect some arguments
-                    $key.val(settings[id])
-                        .on('change', () => onChange())
-                        .on('keyup', () => onChange())
-                        ;
-                }
-            });
-            onChange(false);
-            // reinitialize all the Materialize labels on the page if you are dynamically adding inputs:
-            if (M) M.updateTextFields();
-        }
-
-        // This will be called by the admin adapter when the user presses the save button
-        function save(callback) {
-            // example: select elements with class=value and build settings object
-            var obj = {};
-            $(".cfgval-simple").each(function () {
-                var $this = $(this);
-                if ($this.attr('type') === 'checkbox') {
-                    obj[$this.attr('id')] = $this.prop('checked');
-                } else {
-                    obj[$this.attr('id')] = $this.val();
-                }
-            });
-            callback(obj);
-        }
-    </script>
+<!-- script with all the frontend logic -->
+<script type="text/javascript" src="admin.js"></script>
 
 </head>
 
 <body>
 <div class="m adapter-container">
+
+    <div class="materialize-dialogs m">
+        <div id="dialog_info" class="modal modal-fixed-footer">
+            <div class="modal-content">
+                <h3>Error!</h3>
+                <!--
+                <div class="row textarea">
+                    <textarea id="stdout" disabled="disabled" cols="120" rows="30" style="height: calc(100% - 115px)"></textarea>
+                </div>
+                -->
+            </div>
+            <div class="modal-footer">
+                <!-- <a name="stop" href="#!" class="modal-action modal-close waves-effect waves-red btn-flat left">Stop</a> -->
+                <a name="hide" href="#!" class="modal-action modal-close waves-effect waves-green btn green translate">Hide</a>
+            </div>
+        </div>
+    </div>
+
 
     <div class="row">
 
@@ -77,9 +60,10 @@
         <!-- tab-main, tab for basic adapter settings -->
         <div id="tab-main" class="col s12 page">
             <div class="row">
+            
                 <div class="col s6 input-field">
                     <input type="text" class="cfgval-simple" id="serverIp" />
-                    <label for="serverIp" class="translate">IP Address</label>
+                    <label for="serverIp" class="translate">Server IP</label>
                 </div>
 
                 <div class="col s6 input-field">
@@ -87,15 +71,8 @@
                     <label for="serverPort" class="translate">Port</label>
                 </div>
 
-                <div class="col s6 input-field">
-                    <input type="text" class="cfgval-simple" id="plug" />
-                    <label for="plug" class="translate">Plug State</label>
-                </div>
             </div>
         </div>
-
-
-
     </div>
 </div>
 </body>

@@ -99,10 +99,10 @@ class PiControl extends utils.Adapter {
         switch(this.piState) {
             
             case this.piStates.off: {
-                if (this.piSwitched == true) {
+                if (this.piSwitch == true) {
                     /* user wants to switch on the pi, thus, switch on relay */
                     this.setForeignState(this.piPlugId, true);
-                    this.piSwitched = false;
+                    this.piSwitch = false;
                     this.startupTimer.Start();
                     
                     this.log.info("state change: off => waitingForOn");
@@ -110,7 +110,7 @@ class PiControl extends utils.Adapter {
                     
                 } else if (this.piAlive == true) {
                     /* seems that someone switched on the pi directly */
-                    this.setState("Switch", this.piState, true);
+                    this.setState("Switch", true);
                     
                     this.log.info("state change: off => on");
                     this.piState = this.piStates.on;
@@ -139,9 +139,8 @@ class PiControl extends utils.Adapter {
             /* this is the normal state where we wait for shutdown comments */
             case this.piStates.on: {
                 
-                if (this.piSwitched == true) {
+                if (this.piSwitch == false) {
                     /* shutdown triggered by user */
-                    this.piSwitched = false;
                     this.CommandShutdown();
                     
                     //this.log.info("state change: on => waitingForShutdown");
@@ -152,6 +151,8 @@ class PiControl extends utils.Adapter {
                     this.recoveryTimer.Start();
                     
                 } else if ( (this.piAlive == false) && (this.recoveryTimer.IsFinished() == true) ) {
+                    this.setState("Switch", false);
+                    
                     this.log.info("state change: on => recovery");
                     this.piState = this.piStates.recovery;
                     
@@ -198,8 +199,8 @@ class PiControl extends utils.Adapter {
             }
             
             case this.piStates.recovery: {
-                if (this.autoRecovery == true) {
-                    
+                
+                if (this.autoRecovery == true) {                    
                     this.setForeignState(this.piPlugId, false);
                     this.dechargeTimer.Start();
                     
@@ -227,14 +228,13 @@ class PiControl extends utils.Adapter {
             if (state.ack == false) {            
                 /* actions are depending on state */
                 switch( this.IdWithoutPath(id) ){
+                    
                     case "Switch": {
-                        this.ProcessTriggerSwitch(state);
+                        this.piSwitch = state.val;
+                        ProcessStateMachine();
                         break;
                     }
-                    case "EmergencyShutdown": {
-                        this.ProcessTriggerEmergencyShutdown(state);
-                        break;
-                    }                
+                    
                     default: {
                         break;
                     }
@@ -243,22 +243,6 @@ class PiControl extends utils.Adapter {
         } else {
             /* seems that the state was deleted */
             this.log.info(`state ${id} deleted`);
-        }
-    }
-    
-    
-    ProcessTriggerSwitch(state) {
-        if(state.val == true)
-        {
-            /* accept triggers only in on and off states */
-            if ( (this.piState == this.piStates.off) || (this.piState == this.piStates.on) ) {
-                /* set switch flag and call state machine directly, for faster execution */
-                this.piSwitched = true;
-            } else {
-                /* in intermediate states, the "button" is blocked */
-                this.log.info("switching is not allowed at the moment");
-            }
-            this.setState("Switch", false);    
         }
     }
     
@@ -307,7 +291,7 @@ class PiControl extends utils.Adapter {
         var requestString = (JSON.stringify(request) + "\n");                
         var mybuf = Buffer.from(requestString);
         
-        this.piServer.send( mybuf, 2222,'192.168.0.108', (error) => {
+        this.piServer.send( mybuf, this.config.serverPort, this.config.serverIp, (error) => {
             if (error) {
                 this.piServer.close();
             } else {
@@ -375,10 +359,9 @@ class PiControl extends utils.Adapter {
     
     async CreateStates() {
         /* create states... */
-        await this.setObjectNotExistsAsync("Switch", {type: "state", common: {name: "switch on and off the Pi", type: "boolean", role: "state", read: true, write: true } });
+        await this.setObjectNotExistsAsync("Switch", {type: "state", common: {name: "switch on and off the Pi", type: "boolean", role: "switch", read: true, write: true } });
         await this.setObjectNotExistsAsync("internal.piState", {type: "state", common: {name: "state of the Pi state machine", type: "number", role: "state", read: true, write: false }, states: {1:"off", 2:"waitingForOn", 3:"on", 4:"waitingForShutdown", 5:"waitingDelayOff"} });
         await this.setObjectNotExistsAsync("internal.piAlive", {type: "state", common: {name: "Pi is reachable in network", type: "boolean", role: "state", read: true, write: false } });
-        await this.setObjectNotExistsAsync("EmergencyShutdown", {type: "state", common: {name: "switch of the pi (the hard way)", type: "boolean", role: "switch", read: true, write: true } });
         
         /* ... and subscribe them */
         this.subscribeStates("Switch");
@@ -387,14 +370,20 @@ class PiControl extends utils.Adapter {
     
     
     ConfigSanityCheck(config) {
-        /* Todo: configuration is not checked at the moment */
-        return true;
+        var configSane = true;
+
+        /* check if port is in allowed range */
+        if ( (config.serverPort < 0) || (config.serverPort > 65535) ) {
+            return false;
+        }
+        
+        return configSane;
     }
     
     
     CheckPiAlive() {
         /* we ping the pi to get the alive status */
-        ping.sys.probe("192.168.0.108", (isAlive) => {
+        ping.sys.probe(this.config.serverIp, (isAlive) => {
             if (isAlive) {
                 this.piAlive = true;
             } else {
@@ -479,7 +468,7 @@ class Timer {
 // @ts-ignore parent is a valid property on module
 if (module.parent) {
     // Export the constructor in compact mode
-    /**
+//     /**
      * @param {Partial<utils.AdapterOptions>} [options={}]
      */
     module.exports = (options) => new PiControl(options);
