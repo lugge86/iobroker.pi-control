@@ -176,7 +176,7 @@ def main():
             elif request["cmd"] == "test":
                 print("received test")
                 
-            elif request["cmd"] == "serverVersion":
+            elif request["cmd"] == "serverInfo":
                 sendResponse = True
                 response["data"]["version"] = "0.0.1"
                 response["success"] = True
