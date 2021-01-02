@@ -87,7 +87,13 @@ class PiControl extends utils.Adapter {
     
     MainFunction() {
         /* do all our cyclic stuff here */
-        this.ProcessStateMachine();
+        
+        if (this.config.simpleMode == true) {
+            this.ProcessStateMachineSimple();
+        } else {
+            this.ProcessStateMachine();
+        }
+        
         this.CheckPiAlive();
         this.ProcessMeasurements();
     }
@@ -103,7 +109,7 @@ class PiControl extends utils.Adapter {
                     this.setForeignState(this.config.plugId, true);
                     this.startupTimer.Start();
                     
-                    this.log.info("state change: off => waitingForOn");
+                    this.log.debug("state change: off => waitingForOn");
                     this.piState = this.piStates.waitingForOn;
                     
                 } else if (this.piAlive == true) {
@@ -111,7 +117,7 @@ class PiControl extends utils.Adapter {
                     this.setState("Switch", true);
                     this.CommandServerInfo();
                     
-                    this.log.info("state change: off => on");
+                    this.log.debug("state change: off => on");
                     this.piState = this.piStates.on;
                 }
                 break;
@@ -124,13 +130,13 @@ class PiControl extends utils.Adapter {
                     this.startupTimer.Stop();
                     this.CommandServerInfo();
                     
-                    this.log.info("state change: waitingForOn => on");
+                    this.log.debug("state change: waitingForOn => on");
                     this.piState = this.piStates.on;
                     
                 } else if ( this.startupTimer.IsFinished() == true) {
                     this.log.error("seems the pi won't start up...");
                     
-                    this.log.info("state change: waitingForOn => recovery");
+                    this.log.debug("state change: waitingForOn => recovery");
                     this.piState = this.piStates.recovery;                
                 }
                 break;
@@ -143,7 +149,7 @@ class PiControl extends utils.Adapter {
                     /* shutdown triggered by user */
                     this.CommandShutdown();
                     
-                    this.log.info("state change: on => waitingForShutdown");
+                    this.log.debug("state change: on => waitingForShutdown");
                     this.piState = this.piStates.waitingForShutdown;
                     
                 } else if ( (this.piAlive == false) && ( this.recoveryTimer.IsRunning() == false ) ) {
@@ -153,7 +159,7 @@ class PiControl extends utils.Adapter {
                 } else if ( (this.piAlive == false) && (this.recoveryTimer.IsFinished() == true) ) {
                     this.setState("Switch", false);
                     
-                    this.log.info("state change: on => recovery");
+                    this.log.debug("state change: on => recovery");
                     this.piState = this.piStates.recovery;
                     
                 } else if ( (this.piAlive == true) && ( this.recoveryTimer.IsRunning() ) ){
@@ -170,7 +176,7 @@ class PiControl extends utils.Adapter {
                 if (this.piAlive == false) {
                     this.offTimer.Start();
                     
-                    this.log.info("state change: waitingForShutdown => waitingDelayOff");
+                    this.log.debug("state change: waitingForShutdown => waitingDelayOff");
                     this.piState = this.piStates.waitingDelayOff;
                 }
                 //todo: timeout
@@ -183,7 +189,7 @@ class PiControl extends utils.Adapter {
                     this.setForeignState(this.config.plugId, false);
                     this.dechargeTimer.Start();
 
-                    this.log.info("state change: waitingDelayOff => waitingDelayDecharge");
+                    this.log.debug("state change: waitingDelayOff => waitingDelayDecharge");
                     this.piState = this.piStates.waitingDelayDecharge;
                 }
                 break;
@@ -192,8 +198,8 @@ class PiControl extends utils.Adapter {
             case this.piStates.waitingDelayDecharge: {
                 if (this.dechargeTimer.IsFinished() == true) {
                     
-                    this.log.info("state change: waitingDelayDecharge => off");
-                    this.piState = this.piStates.off;                
+                    this.log.debug("state change: waitingDelayDecharge => off");
+                    this.piState = this.piStates.off;
                 }
                 break;
             }
@@ -204,8 +210,91 @@ class PiControl extends utils.Adapter {
                     this.setForeignState(this.config.plugId, false);
                     this.dechargeTimer.Start();
                     
-                    this.log.info("state change: recovery => waitingDelayDecharge");
+                    this.log.debug("state change: recovery => waitingDelayDecharge");
                     this.piState = this.piStates.waitingDelayDecharge;
+                } else {
+                    this.log.error("The Pi is no longer reachable, it needs to be plugged off");
+                }
+                break;
+            }
+
+            default: {
+                this.log.error("default branch should never be reached, check your script");
+                this.piState = this.piStates.off;
+                break;
+            }
+        }
+        
+        this.setState("internal.piState", this.piState, true);
+    }
+    
+    
+    ProcessStateMachineSimple() {
+        /* actions depend on current state */
+        switch(this.piState) {
+            
+            case this.piStates.off: {
+                
+                if (this.piAlive == true) {
+                    /* seems that someone switched on the pi directly */
+                    this.setState("Switch", true);
+                    this.CommandServerInfo();
+                    
+                    this.log.debug("state change: off => on");
+                    this.piState = this.piStates.on;
+                }
+                break;
+            }
+
+            /* this is the normal state where we wait for shutdown comments */
+            case this.piStates.on: {
+                
+                if (this.piSwitch == false) {
+                    /* shutdown triggered by user */
+                    this.CommandShutdown();
+                    
+                    this.log.debug("state change: on => waitingForShutdown");
+                    this.piState = this.piStates.waitingForShutdown;
+                    
+                } else if ( (this.piAlive == false) && ( this.recoveryTimer.IsRunning() == false ) ) {
+                    this.log.info("pi seems no longer reachable, starting recovery timer before taking actions");
+                    this.recoveryTimer.Start();
+                    
+                } else if ( (this.piAlive == false) && (this.recoveryTimer.IsFinished() == true) ) {
+                    this.setState("Switch", false);
+                    this.log.error("The Pi is no longer reachable, it needs to be plugged off");
+                    
+                    this.log.debug("state change: on => off");
+                    this.piState = this.piStates.off;
+                    
+                } else if ( (this.piAlive == true) && ( this.recoveryTimer.IsRunning() ) ){
+                    this.log.info("pi is reachable again, aborting recovery timer");
+                    this.recoveryTimer.Stop();
+                }
+
+                break;
+            }
+
+            /* here we wait till the pi is no longer reachable via network */
+            case this.piStates.waitingForShutdown: {                
+                
+                if (this.piAlive == false) {
+                    this.offTimer.Start();
+                    
+                    this.log.debug("state change: waitingForShutdown => waitingDelayOff");
+                    this.piState = this.piStates.waitingDelayOff;
+                }
+                //todo: timeout
+                break;
+            }
+
+            /* here we wait another short delay to make sure the pi is really shut down */
+            case this.piStates.waitingDelayOff: {
+                if (this.offTimer.IsFinished() == true) {                    
+                    this.log.info("The Pi has been shut down and can be de-powered now.");
+
+                    this.log.debug("state change: waitingDelayOff => off");
+                    this.piState = this.piStates.off;
                 }
                 break;
             }
@@ -231,7 +320,7 @@ class PiControl extends utils.Adapter {
                     
                     case "Switch": {
                         this.piSwitch = state.val;
-                        this.ProcessStateMachine();
+                        this.MainFunction();
                         break;
                     }
                     

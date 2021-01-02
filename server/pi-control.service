@@ -4,7 +4,7 @@ Description=Provive service server for ioBroker adapter pi-control
 
 [Service]
 # Command to execute when the service is started
-ExecStart=/usr/bin/python /home/pi/iobroker.pi-control/server/pi-control-server.py
+ExecStart=/usr/bin/python /usr/local/lib/pi-control/pi-control-server.py
 Restart=on-failure
 Environment=PYTHONUNBUFFERED=1
 
