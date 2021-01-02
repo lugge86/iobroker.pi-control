@@ -25,10 +25,11 @@ class PiControl extends utils.Adapter {
         recovery: 7
     };
     
-    delayStartup = (60000 * 2);
+    timeoutStartup = (2 * 60 * 1000);
     delayRecovery = (150000);
-    delayOff = 8000;
-    delayDecharge = 5000;
+    timeoutShutdown = (2 * 60 * 1000);
+    delayOff = (8 * 1000);
+    delayDecharge = (5 * 1000);
     autoRecovery = true;
     requestId = 0;
     
@@ -61,8 +62,9 @@ class PiControl extends utils.Adapter {
         
         this.CreateStates();
         
-        this.startupTimer = new Timer(this.delayStartup, this.MainFunction.bind(this) );
+        this.startupTimer = new Timer(this.timeoutStartup, this.MainFunction.bind(this) );
         this.recoveryTimer = new Timer(this.delayRecovery, this.MainFunction.bind(this) );
+        this.shutdownTimer = new Timer(this.timeoutShutdown, this.MainFunction.bind(this) );
         this.offTimer = new Timer(this.delayOff, this.MainFunction.bind(this) );
         this.dechargeTimer = new Timer(this.delayDecharge, this.MainFunction.bind(this) );
         
@@ -148,6 +150,7 @@ class PiControl extends utils.Adapter {
                 if (this.piSwitch == false) {
                     /* shutdown triggered by user */
                     this.CommandShutdown();
+                    this.shutdownTimer.Start();
                     
                     this.log.debug("state change: on => waitingForShutdown");
                     this.piState = this.piStates.waitingForShutdown;
@@ -174,12 +177,17 @@ class PiControl extends utils.Adapter {
             case this.piStates.waitingForShutdown: {                
                 
                 if (this.piAlive == false) {
+                    this.shutdownTimer.Stop();
                     this.offTimer.Start();
                     
                     this.log.debug("state change: waitingForShutdown => waitingDelayOff");
                     this.piState = this.piStates.waitingDelayOff;
+                
+                } else if (this.shutdownTimer.IsFinished() == true) {
+                    this.log.debug("state change: waitingForShutdown => recovery");
+                    this.piState = this.piStates.recovery;                    
                 }
-                //todo: timeout
+                
                 break;
             }
 
@@ -252,6 +260,7 @@ class PiControl extends utils.Adapter {
                 if (this.piSwitch == false) {
                     /* shutdown triggered by user */
                     this.CommandShutdown();
+                    this.shutdownTimer.Start();
                     
                     this.log.debug("state change: on => waitingForShutdown");
                     this.piState = this.piStates.waitingForShutdown;
@@ -283,8 +292,13 @@ class PiControl extends utils.Adapter {
                     
                     this.log.debug("state change: waitingForShutdown => waitingDelayOff");
                     this.piState = this.piStates.waitingDelayOff;
+
+                } else if (this.shutdownTimer.IsFinished() == true) {
+                    this.log.error("The Pi don't want to shut down. Check manually if everything is OK");
+                    
+                    this.log.debug("state change: waitingForShutdown => off");
+                    this.piState = this.piStates.off;                    
                 }
-                //todo: timeout
                 break;
             }
 
@@ -491,11 +505,11 @@ class PiControl extends utils.Adapter {
             
             /* logging and messaging is only done when state changes */
             if ( (this.piAlive == true) && (this.piAliveOld == false) ) {
-                this.log.info("found pi alive");
+                this.log.debug("found pi alive");
                 this.setState("internal.piAlive", this.piAlive, true);
             }
             if ( (this.piAlive == false) && (this.piAliveOld == true) ) {
-                this.log.info("pi is no longer reachable");
+                this.log.debug("pi is no longer reachable");
                 this.setState("internal.piAlive", this.piAlive, true);
             }
             this.piAliveOld = this.piAlive;
