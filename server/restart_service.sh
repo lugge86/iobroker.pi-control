@@ -1,4 +1,4 @@
 #!/bin/bash
 
-systemctl --user daemon-reload
-systemctl --user restart pi-control
+systemctl  daemon-reload
+systemctl  restart pi-control

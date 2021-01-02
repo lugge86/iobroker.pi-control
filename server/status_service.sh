@@ -1,3 +1,3 @@
 #!/bin/bash
 
-systemctl --user status pi-control
+systemctl  status pi-control
