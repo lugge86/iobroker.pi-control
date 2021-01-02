@@ -1,0 +1,9 @@
+#install
+sudo apt install ./pi-control.deb
+
+#start
+sudo systemctl enable pi-control
+sudo systemctl start pi-control
+
+#uninstall
+sudo apt-get remove pi-control
