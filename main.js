@@ -452,13 +452,25 @@ class PiControl extends utils.Adapter {
         
     }
     
-    UpdateDatapointsMonitor(data) {
+    async UpdateDatapointsMonitor(data) {
         
         for (var component of data) {            
             
             for (var command of component.data) {
-                var path = "monitor." + component.name + "." + command.name;
-                //this.log.info( path)
+                
+                var id = "monitor." + component.name + "." + command.name;                
+                var newType;
+                
+                if (typeof command.value == "string") {
+                    newType = "string";
+                } else if (typeof command.value == "number") {
+                    newType = "number";
+                } else {
+                    this.log.error("unknown type of server response!");
+                }                
+                
+                await this.setObjectNotExistsAsync(id, {type: "state", common: {name: command.name, type: newType, role: "state", read: true, write: false } } );                
+                this.setState(id, command.value);
             }
         }
         
