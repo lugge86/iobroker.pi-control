@@ -1,0 +1,9 @@
+Package: pi-control
+Version: 0.0.1
+Section: custom
+Priority: optional
+Architecture: all
+Essential: no
+Installed-Size: 1024
+Maintainer: lugge86
+Description: server daemon for the pi-control ioBroker adapter

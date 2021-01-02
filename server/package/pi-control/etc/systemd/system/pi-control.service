@@ -1,0 +1,12 @@
+[Unit]
+# Human readable name of the unit
+Description=Provive service server for ioBroker adapter pi-control
+
+[Service]
+# Command to execute when the service is started
+ExecStart=/usr/bin/python /usr/local/lib/pi-control/pi-control-server.py
+Restart=on-failure
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
