@@ -8,7 +8,7 @@ function load(settings, onChange) {
     }
 
     // example: select elements with id=key and class=value and insert value
-    $('.cfgval-simple').each(function () {
+    $('.value').each(function () {
         var $key = $(this);
         var id = $key.attr('id');
         if ($key.attr('type') === 'checkbox') {
@@ -39,8 +39,8 @@ function save(callback) {
     /* create object for holding the user config */
     var adapterConfig = {};
 
-    /* all input values tagged as "cfgval-simple" can directly be stored in our config object */
-    $('.cfgval-simple').each(function () {
+    /* all input values tagged as "value" can directly be stored in our config object */
+    $('.value').each(function () {
         var $this = $(this);
 
         /* checkboxes need further treatment */
