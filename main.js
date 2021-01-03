@@ -508,9 +508,7 @@ class PiControl extends utils.Adapter {
     
     CheckPiAlive() {
         /* we ping the pi to get the alive status */
-        this.log.info("Checking Pi alive...");
         ping.sys.probe(this.config.serverIp, (isAlive) => {
-            this.log.info("Ping executed: " + isAlive);
             if (isAlive) {
                 this.piAlive = true;
             } else {
