@@ -60,16 +60,17 @@ class PiControl extends utils.Adapter {
     
     async AdapterInit() {
         
-        this.CreateStates();
-        
+        /* create all the timers */
         this.startupTimer = new Timer(this.timeoutStartup, this.MainFunction.bind(this) );
         this.recoveryTimer = new Timer(this.delayRecovery, this.MainFunction.bind(this) );
         this.shutdownTimer = new Timer(this.timeoutShutdown, this.MainFunction.bind(this) );
         this.offTimer = new Timer(this.delayOff, this.MainFunction.bind(this) );
         this.dechargeTimer = new Timer(this.delayDecharge, this.MainFunction.bind(this) );
         
+        /* is user config OK? */
         if (this.ConfigSanityCheck(this.config) == true) {
             /* all further work is handled by or main function, which needs to be called cyclically */
+            this.CreateStates();
             this.MainFunction();
             this.mainTimer = schedule.scheduleJob("*/5 * * * * *", this.MainFunction.bind(this)  );
         } else {
@@ -89,7 +90,8 @@ class PiControl extends utils.Adapter {
     
     MainFunction() {
         /* do all our cyclic stuff here */
-        
+
+        /* we have two state machines, depending on user config */
         if (this.config.simpleMode == true) {
             this.ProcessStateMachineSimple();
         } else {
@@ -507,7 +509,7 @@ class PiControl extends utils.Adapter {
     
     
     CheckPiAlive() {
-        /* we ping the pi to get the alive status */
+        /* we ping the pi to get the alive status */cd
         ping.sys.probe(this.config.serverIp, (isAlive) => {
             if (isAlive) {
                 this.piAlive = true;

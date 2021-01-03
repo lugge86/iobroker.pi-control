@@ -1,4 +1,4 @@
-![Logo](admin/pi-control.png)
+![Logo](admin/raspberry_with_text.png)
 # ioBroker.pi-control
 
 [![NPM version](http://img.shields.io/npm/v/iobroker.pi-control.svg)](https://www.npmjs.com/package/iobroker.pi-control)
